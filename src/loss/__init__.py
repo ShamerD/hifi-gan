@@ -1,5 +1,6 @@
-from .FastSpeechLoss import FastSpeechLoss
+from .GANLosses import DiscriminatorLoss, GeneratorLoss
 
 __all__ = [
-    "FastSpeechLoss"
+    "DiscriminatorLoss",
+    "GeneratorLoss"
 ]
