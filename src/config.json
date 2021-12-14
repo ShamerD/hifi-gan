@@ -1,0 +1,50 @@
+{
+  "name": "fast-speech",
+  "n_gpu": 1,
+  "mel_config": {
+    "type": "MelSpectrogramConfig",
+    "args": {
+    }
+  },
+  "model_config": {
+    "type": "ModelConfig",
+    "args": {
+    }
+  },
+  "data": {
+    "train_path": "data/LJSpeech-1.1/train.npy",
+    "val_path": "data/LJSpeech-1.1/val.npy",
+    "batch_size": 64,
+    "num_workers": 4
+  },
+  "optimizer": {
+    "type": "Adam",
+    "args": {
+      "lr": 1.0,
+      "betas": [0.9, 0.98],
+      "eps": 1e-9
+    }
+  },
+  "loss": {
+    "type": "FastSpeechLoss",
+    "args": {}
+  },
+  "lr_scheduler": {
+    "type": "LinearWarmupScheduler",
+    "args": {
+      "warmup_steps": 4000
+    }
+  },
+  "trainer": {
+    "epochs": 200,
+    "save_dir": "resources/",
+    "save_period": 10,
+    "verbosity": 2,
+    "monitor": "min val_loss",
+    "visualize": "wandb",
+    "log_step": 100,
+    "wandb_project": "tts_project",
+    "len_epoch": 500,
+    "grad_norm_clip": 10
+  }
+}
