@@ -4,7 +4,7 @@ import numpy as np
 from numpy.random import shuffle
 from torch.utils.data import DataLoader, Subset
 
-from src.utils.data import LJSpeechDataset, LJSpeechCollator, TextDataset, TextCollator
+from src.utils.data import LJSpeechDataset, LJSpeechCollator
 
 
 def get_dataloaders(data_config: Dict):
@@ -44,11 +44,5 @@ def get_dataloaders(data_config: Dict):
                                         collate_fn=LJSpeechCollator(),
                                         shuffle=False,
                                         num_workers=num_workers)
-
-    inference_dataset = TextDataset()
-    dataloaders['inference'] = DataLoader(inference_dataset,
-                                          batch_size=1,
-                                          collate_fn=TextCollator(),
-                                          shuffle=False)
 
     return dataloaders
