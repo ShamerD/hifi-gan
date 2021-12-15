@@ -14,8 +14,8 @@ class Batch:
     spec_gen: Optional[torch.Tensor] = None     # [B, n_mels, T]
 
     # these contain outputs of every discriminator sub-block
-    disc_pred: Optional[List[torch.Tensor]] = None
-    disc_pred_gen: Optional[List[torch.Tensor]] = None
+    disc_pred: Optional[List[torch.Tensor]] = None      # [B, L_r]
+    disc_pred_gen: Optional[List[torch.Tensor]] = None  # [B, L_p]
 
     # these contain outputs of every discriminator layer
     disc_features: Optional[List[torch.Tensor]] = None
