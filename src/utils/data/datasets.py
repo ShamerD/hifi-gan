@@ -11,8 +11,10 @@ class LJSpeechDataset(torchaudio.datasets.LJSPEECH):
 
     def __getitem__(self, index: int):
         waveform, _, _, _ = super().__getitem__(index)
-        if waveform.size(2) % self.wav_round != 0:
-            waveform = waveform[:, :, :(waveform.size(2) - self.wav_round)]
+
+        # 0dim is for channels
+        if waveform.size(1) % self.wav_round != 0:
+            waveform = waveform[:, :(waveform.size(1) - self.wav_round)]
 
         return waveform
 
