@@ -12,21 +12,12 @@
     }
   },
   "data": {
-    "train_path": "data/LJSpeech-1.1/train.npy",
-    "val_path": "data/LJSpeech-1.1/val.npy",
     "batch_size": 16,
-    "num_workers": 4
+    "num_workers": 4,
+    "limit": 16
   },
   "optimizers": {
     "generator": {
-      "type": "AdamW",
-      "args": {
-        "lr": 2e-4,
-        "betas": [0.8, 0.99],
-        "weight_decay": 0.01
-      }
-    },
-    "discriminator": {
       "type": "AdamW",
       "args": {
         "lr": 2e-4,
@@ -42,11 +33,6 @@
         "feature_coef": 2.0,
         "mel_coef": 45.0
       }
-    },
-    "discriminator": {
-      "type": "DiscriminatorLoss",
-      "args": {
-      }
     }
   },
   "lr_schedulers": {
@@ -56,20 +42,13 @@
         "step_size": 1,
         "gamma": 0.999
       }
-    },
-    "discriminator": {
-      "type": "StepLR",
-      "args": {
-        "step_size": 1,
-        "gamma": 0.999
-      }
     }
   },
   "trainer": {
-    "use_discriminator": true,
-    "epochs": 1000,
+    "use_discriminator": false,
+    "epochs": 10000,
     "save_dir": "resources/",
-    "save_period": 200,
+    "save_period": 1000,
     "verbosity": 2,
     "visualize": "wandb",
     "log_step": 100,
