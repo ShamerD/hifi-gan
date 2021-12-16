@@ -34,8 +34,9 @@ data/
 resources/
 
 # Data split
-!data/LJSpeech-1.1/train.npy
-!data/LJSpeech-1.1/val.npy
+!data/LJSpeech-1.1/
+data/LJSpeech-1.1/*
+!data/LJSpeech-1.1/*.npy
 
 # Logs
 wandb/
