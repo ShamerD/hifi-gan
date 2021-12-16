@@ -31,6 +31,7 @@ def main(config: ConfigParser):
     # build models, then print them
     wav2mel = module_data.MelSpectrogram(featurizer_config)
     generator = module_model.HiFiGenerator(model_config)
+    use_discriminator = config['trainer'].get("use_discriminator", True)
 
     logger.info("Generator:")
     logger.info(generator)
@@ -44,7 +45,8 @@ def main(config: ConfigParser):
         generator = torch.nn.DataParallel(generator, device_ids=device_ids)
 
     # get function handles of loss and metrics
-    gen_loss = config.init_obj(config["losses"]["generator"], module_loss).to(device)
+    gen_loss = config.init_obj(config["losses"]["generator"],
+                               module_loss, use_discriminator=use_discriminator).to(device)
 
     # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
     trainable_params = filter(lambda p: p.requires_grad, generator.parameters())
@@ -59,7 +61,6 @@ def main(config: ConfigParser):
     disc_loss = None
     disc_optimizer = None
     disc_scheduler = None
-    use_discriminator = config['trainer'].get("use_discriminator", True)
     if use_discriminator:
         discriminator = module_model.HiFiDiscriminator(model_config)
         logger.info("Discriminator:")

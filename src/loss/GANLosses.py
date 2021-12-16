@@ -24,12 +24,12 @@ class DiscriminatorLoss(nn.Module):
 
 
 class GeneratorLoss(nn.Module):
-    def __init__(self, feature_coef=2.0, mel_coef=45.0, only_spec=False):
+    def __init__(self, feature_coef=2.0, mel_coef=45.0, use_discriminator=True):
         super().__init__()
 
         self.feature_coef = feature_coef
         self.mel_coef = mel_coef
-        self.only_spec = only_spec
+        self.use_discriminator = use_discriminator
 
         self.l1 = nn.L1Loss()
         self.mse = nn.MSELoss()
@@ -39,7 +39,7 @@ class GeneratorLoss(nn.Module):
         assert batch.spec_gen is not None
         batch.spec_loss = self.l1(batch.spec_gen, batch.spec)
 
-        if self.only_spec:
+        if not self.use_discriminator:
             # return normalized
             return batch.spec_loss
 
