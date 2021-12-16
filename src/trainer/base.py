@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from typing import Optional
 
 import torch
 from numpy import inf
@@ -7,24 +8,35 @@ from src.logger import get_visualizer
 from src.utils.config_parser import ConfigParser
 
 
-class BaseTrainer:
+class BaseGANTrainer:
     """
     Base class for all trainers
     """
 
     def __init__(self,
-                 model: torch.nn.Module,
-                 criterion: torch.nn.Module,
-                 optimizer: torch.optim.Optimizer,
+                 generator: torch.nn.Module,
+                 gen_criterion: torch.nn.Module,
+                 gen_optimizer: torch.optim.Optimizer,
                  config: ConfigParser,
-                 device: torch.device):
+                 device: torch.device,
+                 discriminator: Optional[torch.nn.Module] = None,
+                 disc_criterion: Optional[torch.nn.Module] = None,
+                 disc_optimizer: Optional[torch.optim.Optimizer] = None,
+                 gen_scheduler: Optional = None,
+                 disc_scheduler: Optional = None):
         self.device = device
         self.config = config
         self.logger = config.get_logger("trainer", config["trainer"]["verbosity"])
 
-        self.model = model
-        self.criterion = criterion
-        self.optimizer = optimizer
+        self.generator = generator
+        self.gen_criterion = gen_criterion
+        self.gen_optimizer = gen_optimizer
+        self.gen_scheduler = gen_scheduler
+
+        self.discriminator = discriminator
+        self.disc_criterion = disc_criterion
+        self.disc_optimizer = disc_optimizer
+        self.disc_scheduler = disc_scheduler
 
         # for interrupt saving
         self._last_epoch = 0
@@ -133,15 +145,28 @@ class BaseTrainer:
         :param save_best: if True, rename the saved checkpoint to 'model_best.pth'
         :param only_best: if True, save only best
         """
-        arch = type(self.model).__name__
+        gen_arch = type(self.generator).__name__
+        disc_arch = type(self.discriminator).__name__ if self.discriminator is not None else None
         state = {
-            "arch": arch,
+            "gen_arch": gen_arch,
             "epoch": epoch,
-            "state_dict": self.model.state_dict(),
-            "optimizer": self.optimizer.state_dict(),
+            "generator": self.generator.state_dict(),
+            "gen_optimizer": self.gen_optimizer.state_dict(),
             "monitor_best": self.mnt_best,
             "config": self.config,
         }
+        if self.gen_scheduler is not None:
+            state['gen_scheduler'] = self.gen_scheduler.state_dict()
+
+        if disc_arch is not None:
+            state.update({
+                "disc_arch": disc_arch,
+                "discriminator": self.discriminator.state_dict(),
+                "disc_optimizer": self.disc_optimizer.state_dict()
+            })
+            if self.disc_scheduler is not None:
+                state['disc_scheduler'] = None
+
         filename = str(self.checkpoint_dir / "checkpoint-epoch{}.pth".format(epoch))
         if not (only_best and save_best):
             torch.save(state, filename)
@@ -168,19 +193,30 @@ class BaseTrainer:
                 "Warning: Architecture configuration given in config file is different from that of "
                 "checkpoint. This may yield an exception while state_dict is being loaded."
             )
-        self.model.load_state_dict(checkpoint["state_dict"])
+        self.generator.load_state_dict(checkpoint["generator"])
 
         # load optimizer state from checkpoint only when optimizer type is not changed.
         if (
-                checkpoint["config"]["optimizer"] != self.config["optimizer"] or
-                checkpoint["config"]["lr_scheduler"] != self.config["lr_scheduler"]
+                checkpoint["config"]["gen_optimizer"] != self.config["gen_optimizer"] or
+                checkpoint["config"]["gen_scheduler"] != self.config["gen_scheduler"]
         ):
             self.logger.warning(
                 "Warning: Optimizer or lr_scheduler given in config file is different "
                 "from that of checkpoint. Optimizer parameters not being resumed."
             )
         else:
-            self.optimizer.load_state_dict(checkpoint["optimizer"])
+            self.gen_optimizer.load_state_dict(checkpoint["gen_optimizer"])
+
+            if self.gen_scheduler is not None and 'gen_scheduler' in checkpoint:
+                self.gen_scheduler.load_state_dict(checkpoint["gen_scheduler"])
+
+        # load discriminator if it is present
+        if self.discriminator is not None and 'discriminator' in checkpoint:
+            self.discriminator.load_state_dict(checkpoint['discriminator'])
+            self.disc_optimizer.load_state_dict(checkpoint['disc_optimizer'])
+
+            if self.disc_scheduler is not None and 'disc_scheduler' in checkpoint:
+                self.disc_scheduler.load_state_dict(checkpoint['disc_scheduler'])
 
         self.logger.info(
             "Checkpoint loaded. Resume training from epoch {}".format(self.start_epoch)

@@ -12,39 +12,46 @@
     }
   },
   "data": {
-    "train_path": "data/LJSpeech-1.1/train.npy",
-    "val_path": "data/LJSpeech-1.1/val.npy",
-    "batch_size": 64,
-    "num_workers": 4
+    "batch_size": 16,
+    "num_workers": 4,
+    "limit": 16
   },
-  "optimizer": {
-    "type": "Adam",
-    "args": {
-      "lr": 1.0,
-      "betas": [0.9, 0.98],
-      "eps": 1e-9
+  "optimizers": {
+    "generator": {
+      "type": "AdamW",
+      "args": {
+        "lr": 2e-4,
+        "betas": [0.8, 0.99],
+        "weight_decay": 0.01
+      }
     }
   },
-  "loss": {
-    "type": "FastSpeechLoss",
-    "args": {}
+  "losses": {
+    "generator": {
+      "type": "GeneratorLoss",
+      "args": {
+        "feature_coef": 2.0,
+        "mel_coef": 45.0
+      }
+    }
   },
-  "lr_scheduler": {
-    "type": "LinearWarmupScheduler",
-    "args": {
-      "warmup_steps": 4000
+  "lr_schedulers": {
+    "generator": {
+      "type": "StepLR",
+      "args": {
+        "step_size": 1,
+        "gamma": 0.999
+      }
     }
   },
   "trainer": {
-    "epochs": 200,
+    "use_discriminator": false,
+    "epochs": 10000,
     "save_dir": "resources/",
-    "save_period": 10,
+    "save_period": 1000,
     "verbosity": 2,
-    "monitor": "min val_loss",
     "visualize": "wandb",
     "log_step": 100,
-    "wandb_project": "tts_project",
-    "len_epoch": 500,
-    "grad_norm_clip": 10
+    "wandb_project": "nv_project"
   }
 }

@@ -30,7 +30,7 @@ def get_dataloaders(data_config: Dict):
         shuffle(idx)
         idx = idx[:data_config['limit']]
 
-        train_dataset = Subset(dataset, idx)
+        train_dataset = Subset(train_dataset, idx)
 
     dataloaders['train'] = DataLoader(train_dataset,
                                       batch_size=batch_size,

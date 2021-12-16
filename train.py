@@ -9,7 +9,7 @@ from torch.optim.lr_scheduler import LambdaLR
 import src.loss as module_loss
 import src.model as module_model
 import src.utils.data as module_data
-from src.trainer import Trainer
+from src.trainer import GANTrainer
 from src.utils import prepare_device, fix_seed
 from src.utils.config_parser import ConfigParser, CustomArgs
 from src.utils.data import get_dataloaders
@@ -30,57 +30,69 @@ def main(config: ConfigParser):
     model_config = config.init_obj(config['model_config'], module_model)
     config['model_config']['args'].update(dataclasses.asdict(model_config))
 
-    # build all models, then print FastSpeech to console
+    # build models, then print them
     wav2mel = module_data.MelSpectrogram(featurizer_config)
-    model = module_model.FastSpeech(model_config)
-    aligner = module_model.GraphemeAligner(featurizer_config)
-    vocoder = module_model.Waveglow()
+    generator = module_model.HiFiGenerator(model_config)
 
-    logger.info(model)
+    logger.info("Generator:")
+    logger.info(generator)
 
     # prepare for (multi-device) GPU training
     device, device_ids = prepare_device(config["n_gpu"])
-    model = model.to(device)
+    generator = generator.to(device)
     wav2mel = wav2mel.to(device)
-    aligner = aligner.to(device)
-    vocoder = vocoder.to(device)
 
     if len(device_ids) > 1:
-        model = torch.nn.DataParallel(model, device_ids=device_ids)
+        generator = torch.nn.DataParallel(generator, device_ids=device_ids)
 
     # get function handles of loss and metrics
-    loss = config.init_obj(config["loss"], module_loss).to(device)
+    gen_loss = config.init_obj(config["losses"]["generator"], module_loss).to(device)
 
     # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
-    trainable_params = filter(lambda p: p.requires_grad, model.parameters())
-    optimizer = config.init_obj(config["optimizer"], torch.optim, trainable_params)
-    if config["lr_scheduler"]["type"] == "LinearWarmupScheduler":
-        # Don't know how to configure this out
-        len_epoch = config["trainer"].get("len_epoch", len(dataloaders["train"]))
-        total_steps = config["trainer"]["epochs"] * len_epoch
-        warmup_steps = config["lr_scheduler"]["args"]["warmup_steps"]
-        if type(warmup_steps) == float:
-            warmup_steps = int(warmup_steps * total_steps)
-        lr_scheduler = LambdaLR(optimizer,
-                                lr_lambda=LinearWarmupScheduler(
-                                    model_config.d_model, total_steps=total_steps, warmup_steps=warmup_steps)
-                                )
+    trainable_params = filter(lambda p: p.requires_grad, generator.parameters())
+    gen_optimizer = config.init_obj(config["optimizers"]["generator"], torch.optim, trainable_params)
+    if "lr_schedulers" in config and "generator" in config["lr_schedulers"]:
+        gen_scheduler = config.init_obj(config["lr_scheduler"], torch.optim.lr_scheduler, gen_optimizer)
     else:
-        lr_scheduler = config.init_obj(config["lr_scheduler"], torch.optim.lr_scheduler, optimizer)
+        gen_scheduler = None
 
-    trainer = Trainer(
-        model,
+    # repeat everything for discriminator if needed
+    use_discriminator = config['trainer'].get("use_discriminator", True)
+    if use_discriminator:
+        discriminator = module_model.HiFiDiscriminator(model_config)
+        logger.info("Discriminator:")
+        logger.info(discriminator)
+        discriminator = discriminator.to(device)
+
+        if len(device_ids) > 1:
+            discriminator = torch.nn.DataParallel(discriminator, device_ids=device_ids)
+
+        disc_loss = config.init_obj(config["losses"]["discriminator"], module_loss).to(device)
+        trainable_params = filter(lambda p: p.requires_grad, discriminator.parameters())
+        disc_optimizer = config.init_obj(config["optimizers"]["discriminator"], torch.optim, trainable_params)
+        if "lr_schedulers" in config and "discriminator" in config["lr_schedulers"]:
+            disc_scheduler = config.init_obj(config["lr_scheduler"], torch.optim.lr_scheduler, disc_optimizer)
+    else:
+        discriminator = None
+        disc_loss = None
+        disc_optimizer = None
+        disc_scheduler = None
+
+    trainer = GANTrainer(
+        generator,
+        gen_loss,
+        gen_optimizer,
         wav2mel,
-        aligner,
-        vocoder,
-        loss,
-        optimizer,
         config=config,
         device=device,
         data_loader=dataloaders["train"],
         valid_data_loader=dataloaders["val"],
         inference_data_loader=dataloaders["inference"],
-        lr_scheduler=lr_scheduler,
+        discriminator=discriminator,
+        disc_criterion=disc_loss,
+        disc_optimizer=disc_optimizer,
+        gen_scheduler=gen_scheduler,
+        disc_scheduler=disc_scheduler,
         len_epoch=config["trainer"].get("len_epoch", None),
         log_step=config["trainer"].get("log_step", None)
     )
@@ -90,7 +102,6 @@ def main(config: ConfigParser):
 
 if __name__ == "__main__":
     fix_seed()
-    sys.path.append('waveglow/')
     args = argparse.ArgumentParser(description="PyTorch Template")
     args.add_argument(
         "-c",

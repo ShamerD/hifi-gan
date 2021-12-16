@@ -14,7 +14,9 @@ class DiscriminatorLoss(nn.Module):
         assert batch.disc_pred_gen is not None
 
         loss_real = sum(self.mse(d_out, torch.ones_like(d_out)) for d_out in batch.disc_pred)
-        loss_gen = sum(self.mse(d_out, torch.zeros_like(d_out)) for d_out in batch.disc_pred)
+
+        # d_out here should already be detached
+        loss_gen = sum(self.mse(d_out, torch.zeros_like(d_out)) for d_out in batch.disc_pred_gen)
 
         batch.discriminator_loss = loss_real + loss_gen
 
@@ -38,7 +40,10 @@ class GeneratorLoss(nn.Module):
         batch.spec_loss = self.l1(batch.spec_gen, batch.spec)
 
         if self.only_spec:
+            # return normalized
             return batch.spec_loss
+
+        batch.spec_loss = batch.spec_loss * self.mel_coef
 
         assert batch.disc_pred_gen is not None
         batch.adv_gen_loss = sum(self.mse(d_out, torch.ones_like(d_out)) for d_out in batch.disc_pred_gen)
@@ -46,10 +51,10 @@ class GeneratorLoss(nn.Module):
         assert batch.disc_features is not None
         assert batch.disc_features_gen is not None
         batch.feature_loss = sum(self.l1(feature_real, feature_gen) for (feature_real, feature_gen) in
-                                 zip(batch.disc_features, batch.disc_features_gen))
+                                 zip(batch.disc_features, batch.disc_features_gen)) * self.feature_coef
 
         batch.generator_loss = (batch.adv_gen_loss
-                                + self.feature_coef * batch.feature_loss
-                                + self.mel_coef * batch.spec_loss)
+                                + batch.feature_loss
+                                + batch.spec_loss)
 
         return batch.generator_loss
