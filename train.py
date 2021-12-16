@@ -1,10 +1,8 @@
 import argparse
 import dataclasses
-import sys
 import warnings
 
 import torch
-from torch.optim.lr_scheduler import LambdaLR
 
 import src.loss as module_loss
 import src.model as module_model
@@ -57,6 +55,10 @@ def main(config: ConfigParser):
         gen_scheduler = None
 
     # repeat everything for discriminator if needed
+    discriminator = None
+    disc_loss = None
+    disc_optimizer = None
+    disc_scheduler = None
     use_discriminator = config['trainer'].get("use_discriminator", True)
     if use_discriminator:
         discriminator = module_model.HiFiDiscriminator(model_config)
@@ -72,11 +74,6 @@ def main(config: ConfigParser):
         disc_optimizer = config.init_obj(config["optimizers"]["discriminator"], torch.optim, trainable_params)
         if "lr_schedulers" in config and "discriminator" in config["lr_schedulers"]:
             disc_scheduler = config.init_obj(config["lr_scheduler"], torch.optim.lr_scheduler, disc_optimizer)
-    else:
-        discriminator = None
-        disc_loss = None
-        disc_optimizer = None
-        disc_scheduler = None
 
     trainer = GANTrainer(
         generator,
@@ -127,9 +124,9 @@ if __name__ == "__main__":
 
     # custom cli options to modify configuration from default values given in json file.
     options = [
-        CustomArgs(["--lr", "--learning_rate"], type=float, target="optimizer;args;lr"),
+        CustomArgs(["--lr", "--learning_rate"], type=float, target="optimizers;generator;args;lr"),
         CustomArgs(
-            ["--bs", "--batch_size"], type=int, target="data_loader;args;batch_size"
+            ["--bs", "--batch_size"], type=int, target="data;batch_size"
         ),
     ]
     config = ConfigParser.from_args(args, options)

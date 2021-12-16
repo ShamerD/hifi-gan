@@ -44,13 +44,13 @@ class PeriodDiscriminator(nn.Module):
         intermediate = []
 
         # pad and reshape
-        batch_size, n_channels, time = x.size()
+        batch_size, time = x.size()
         if time % self.period != 0:
             need_to_add = self.period - (time % self.period)
             x = F.pad(x, (0, need_to_add))
             time += need_to_add
 
-        x = x.reshape(batch_size, n_channels, time // self.period, self.period)
+        x = x.reshape(batch_size, 1, time // self.period, self.period)
 
         for i, layer in enumerate(self.layers):
             x = layer(x)
@@ -108,6 +108,7 @@ class ScaleDiscriminator(nn.Module):
 
     def forward(self, x: torch.Tensor):
         intermediate = []
+
         for i, layer in enumerate(self.layers):
             x = layer(x)
 
@@ -129,6 +130,7 @@ class MultiScaleDiscriminator(nn.Module):
     def forward(self, x: torch.Tensor):
         predictions = []
         intermediate = []
+        x = x.unsqueeze(1)
 
         for i in range(self.n_layers):
             pred, features = self.discriminators[i](x)
