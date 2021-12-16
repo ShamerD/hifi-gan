@@ -197,7 +197,7 @@ class GANTrainer(BaseGANTrainer):
 
         for metric_name in metrics.keys():
             if metric_name.endswith("loss"):
-                metrics.update("metric_name", getattr(batch, metric_name).item())
+                metrics.update(metric_name, getattr(batch, metric_name).item())
 
         return batch
 
