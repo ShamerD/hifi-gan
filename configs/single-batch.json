@@ -15,7 +15,7 @@
     "batch_size": 16,
     "num_workers": 4,
     "limit": 16,
-    "max_wav_length": 24064
+    "max_wav_length": 24576
   },
   "optimizers": {
     "generator": {

@@ -17,6 +17,15 @@ class MelSpectrogramConfig:
     n_mels: int = 80
     power: float = 1.0
 
+    # if no padding is applied mel length should be (N - window + hop) // hop, if N = wav_length
+    # but center=True (default) pads left and right by (window // 2), so mel_len = (N + hop) // hop
+    # we want it to be exactly N / hop (as model upsamples it x256 (hop))
+    # we can choose N to be divisible by hop, but we carefully choose padding to make mel_length = (N / hop)
+    # that being said padding = (window - hop) / 2
+
+    center: bool = False
+    pad: int = (1024 - 256) // 2
+
     # value of melspectrograms if we fed a silence into `MelSpectrogram`
     pad_value: float = -11.5129251
 
@@ -35,7 +44,9 @@ class MelSpectrogram(nn.Module):
             f_min=config.f_min,
             f_max=config.f_max,
             n_mels=config.n_mels,
-            power=config.power
+            power=config.power,
+            center=config.center,
+            pad=config.pad
         )
 
         # Default `torchaudio` mel basis uses HTK formula. In order to be compatible with WaveGlow
@@ -55,6 +66,11 @@ class MelSpectrogram(nn.Module):
         :return: log-mel-spectrogram of shape [B, n_mels, T']
         """
 
+        # by default audio time is divisible by hop_length
+        # because of that mel_time will be T / hop_length + 1
+        # model's output will be hop_length * mel_time = T + hop_length
+        # that is if we calculate spec again we will be 1 off real spec in mel_time
+
         mel = self.mel_spectrogram(audio) \
             .clamp_(min=1e-5) \
             .log_()
@@ -63,9 +79,9 @@ class MelSpectrogram(nn.Module):
 
     def transform_wav_lengths(self, wav_lengths: torch.Tensor):
         # if no padding this should be (N - window + hop) // hop
-        # but by default MelSpectrogram pads left and right by (window // 2)
+        # but we chose padding to make it N // hop
         return torch.div(
-            wav_lengths + self.config.hop_length,
+            wav_lengths,
             self.config.hop_length,
             rounding_mode='trunc'
         )
