@@ -13,8 +13,9 @@ def get_dataloaders(data_config: Dict):
     batch_size = data_config.get('batch_size', 1)
     num_workers = data_config.get('num_workers', 1)
     max_wav_length = data_config.get('max_wav_length', None)
+    deterministic = data_config.get('deterministic', False)
 
-    dataset = LJSpeechDataset(max_wav_length)
+    dataset = LJSpeechDataset(max_wav_length, deterministic)
     val_dataset = None
 
     if 'val_path' in data_config and 'train_path' in data_config:

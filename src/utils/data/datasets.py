@@ -7,10 +7,11 @@ from src.utils import DATA_DIR
 
 
 class LJSpeechDataset(torchaudio.datasets.LJSPEECH):
-    def __init__(self, max_wav_length: Optional[int] = None):
+    def __init__(self, max_wav_length: Optional[int] = None, deterministic: bool = False):
         DATA_DIR.mkdir(parents=True, exist_ok=True)
         super().__init__(root=DATA_DIR, download=True)
         self.max_wav_length = max_wav_length
+        self.deterministic = deterministic
 
     def __getitem__(self, index: int):
         waveform, _, _, _ = super().__getitem__(index)
@@ -18,7 +19,10 @@ class LJSpeechDataset(torchaudio.datasets.LJSPEECH):
         # 0dim is for channels
         if self.max_wav_length is not None and waveform.size(1) > self.max_wav_length:
             max_start = waveform.size(1) - self.max_wav_length
-            start = random.randint(0, max_start)
+            if self.deterministic:
+                start = min(max_start, waveform.size(1) // 2)
+            else:
+                start = random.randint(0, max_start)
             waveform = waveform[:, start:(start + self.max_wav_length)]
 
         return waveform
