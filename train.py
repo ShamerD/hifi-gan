@@ -49,10 +49,10 @@ def main(config: ConfigParser):
     # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
     trainable_params = filter(lambda p: p.requires_grad, generator.parameters())
     gen_optimizer = config.init_obj(config["optimizers"]["generator"], torch.optim, trainable_params)
-    if "lr_schedulers" in config and "generator" in config["lr_schedulers"]:
+    gen_scheduler = None
+    if "lr_schedulers" in config.config and "generator" in config["lr_schedulers"]:
         gen_scheduler = config.init_obj(config["lr_scheduler"], torch.optim.lr_scheduler, gen_optimizer)
-    else:
-        gen_scheduler = None
+
 
     # repeat everything for discriminator if needed
     discriminator = None
@@ -72,7 +72,7 @@ def main(config: ConfigParser):
         disc_loss = config.init_obj(config["losses"]["discriminator"], module_loss).to(device)
         trainable_params = filter(lambda p: p.requires_grad, discriminator.parameters())
         disc_optimizer = config.init_obj(config["optimizers"]["discriminator"], torch.optim, trainable_params)
-        if "lr_schedulers" in config and "discriminator" in config["lr_schedulers"]:
+        if "lr_schedulers" in config.config and "discriminator" in config["lr_schedulers"]:
             disc_scheduler = config.init_obj(config["lr_scheduler"], torch.optim.lr_scheduler, disc_optimizer)
 
     trainer = GANTrainer(

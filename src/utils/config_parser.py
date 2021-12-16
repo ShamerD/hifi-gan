@@ -142,7 +142,7 @@ class ConfigParser:
 
     @classmethod
     def get_default_configs(cls):
-        config_path = ROOT_PATH / 'default_config.json'
+        config_path = ROOT_PATH / "src" / 'config.json'
         with config_path.open() as f:
             return cls(json.load(f))
 
