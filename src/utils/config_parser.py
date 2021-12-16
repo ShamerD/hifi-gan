@@ -50,7 +50,7 @@ class ConfigParser:
         self.log_levels = {0: logging.WARNING, 1: logging.INFO, 2: logging.DEBUG}
 
     @classmethod
-    def from_args(cls, args, options: List[CustomArgs] = []):
+    def from_args(cls, args, options: List[CustomArgs]):
         """
         Initialize this class from some cli arguments. Used in train, test.
         """
