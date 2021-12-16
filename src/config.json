@@ -16,7 +16,7 @@
     "val_path": "data/LJSpeech-1.1/val.npy",
     "batch_size": 16,
     "num_workers": 4,
-    "max_wav_length": 24000
+    "max_wav_length": 24064
   },
   "optimizers": {
     "generator": {
