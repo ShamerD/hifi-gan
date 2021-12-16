@@ -1,20 +1,25 @@
+import random
+from typing import Optional
+
 import torchaudio
 
 from src.utils import DATA_DIR
 
 
 class LJSpeechDataset(torchaudio.datasets.LJSPEECH):
-    def __init__(self, wav_round: int = 256):
+    def __init__(self, max_wav_length: Optional[int] = None):
         DATA_DIR.mkdir(parents=True, exist_ok=True)
         super().__init__(root=DATA_DIR, download=True)
-        self.wav_round = wav_round
+        self.max_wav_length = max_wav_length
 
     def __getitem__(self, index: int):
         waveform, _, _, _ = super().__getitem__(index)
 
         # 0dim is for channels
-        if waveform.size(1) % self.wav_round != 0:
-            waveform = waveform[:, :(waveform.size(1) - self.wav_round)]
+        if self.max_wav_length is not None and waveform.size(1) > self.max_wav_length:
+            max_start = waveform.size(1) - self.max_wav_length
+            start = random.randint(0, max_start)
+            waveform = waveform[:, start:(start + self.max_wav_length)]
 
         return waveform
 

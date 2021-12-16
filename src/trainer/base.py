@@ -197,8 +197,8 @@ class BaseGANTrainer:
 
         # load optimizer state from checkpoint only when optimizer type is not changed.
         if (
-                checkpoint["config"]["gen_optimizer"] != self.config["gen_optimizer"] or
-                checkpoint["config"]["gen_scheduler"] != self.config["gen_scheduler"]
+                checkpoint["config"]["optimizers"] != self.config["optimizers"] or
+                checkpoint["config"]["lr_schedulers"] != self.config["lr_schedulers"]
         ):
             self.logger.warning(
                 "Warning: Optimizer or lr_scheduler given in config file is different "

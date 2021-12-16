@@ -1,5 +1,5 @@
 {
-  "name": "fast-speech",
+  "name": "hifi-gan",
   "n_gpu": 1,
   "mel_config": {
     "type": "MelSpectrogramConfig",
@@ -14,7 +14,8 @@
   "data": {
     "batch_size": 16,
     "num_workers": 4,
-    "limit": 16
+    "limit": 16,
+    "max_wav_length": 24000
   },
   "optimizers": {
     "generator": {

@@ -1,5 +1,5 @@
 {
-  "name": "fast-speech",
+  "name": "hifi-gan",
   "n_gpu": 1,
   "mel_config": {
     "type": "MelSpectrogramConfig",
@@ -15,7 +15,8 @@
     "train_path": "data/LJSpeech-1.1/train.npy",
     "val_path": "data/LJSpeech-1.1/val.npy",
     "batch_size": 16,
-    "num_workers": 4
+    "num_workers": 4,
+    "max_wav_length": 24000
   },
   "optimizers": {
     "generator": {
