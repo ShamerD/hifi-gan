@@ -24,9 +24,10 @@ class DiscriminatorLoss(nn.Module):
 
 
 class GeneratorLoss(nn.Module):
-    def __init__(self, feature_coef=2.0, mel_coef=45.0, use_discriminator=True):
+    def __init__(self, adv_coef=1.0, feature_coef=2.0, mel_coef=45.0, use_discriminator=True):
         super().__init__()
 
+        self.adv_coef = adv_coef
         self.feature_coef = feature_coef
         self.mel_coef = mel_coef
         self.use_discriminator = use_discriminator
@@ -46,7 +47,8 @@ class GeneratorLoss(nn.Module):
         batch.spec_loss = batch.spec_loss * self.mel_coef
 
         assert batch.disc_pred_gen is not None
-        batch.adv_gen_loss = sum(self.mse(d_out, torch.ones_like(d_out)) for d_out in batch.disc_pred_gen)
+        batch.adv_gen_loss = sum(self.mse(d_out, torch.ones_like(d_out)) for d_out
+                                 in batch.disc_pred_gen) * self.adv_coef
 
         assert batch.disc_features is not None
         assert batch.disc_features_gen is not None
