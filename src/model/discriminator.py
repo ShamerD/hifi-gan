@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from torch.nn.utils import weight_norm, spectral_norm
 import torch.nn.functional as F
 
 from src.model.default_config import ModelConfig
@@ -22,21 +23,21 @@ class PeriodDiscriminator(nn.Module):
         # add repeated convs and the one with stride=1
         for i in range(len(channels) - 1):
             is_last = (i + 2 == len(channels))
-            self.layers.append(
+            self.layers.append(weight_norm(
                 nn.Conv2d(channels[i], channels[i+1],
                           (kernel_size, 1),
                           (config.mpd_sublayer_stride if not is_last else 1, 1),
                           padding=((kernel_size - 1) // 2, 0))
-            )
+            ))
             self.layers.append(nn.LeakyReLU(config.relu_slope))
 
         # add last layer making channels=1, note no relu
         last_ks = config.mpd_sublayer_last_kernel_size
-        self.layers.append(
+        self.layers.append(weight_norm(
             nn.Conv2d(channels[-1], 1,
                       kernel_size=(last_ks, 1),
                       padding=((last_ks - 1) // 2, 0))
-        )
+        ))
 
         self.flat_fn = nn.Flatten()
 
@@ -84,7 +85,7 @@ class MultiPeriodDiscriminator(nn.Module):
 
 
 class ScaleDiscriminator(nn.Module):
-    def __init__(self, config: ModelConfig):
+    def __init__(self, norm_fn, config: ModelConfig):
         super().__init__()
 
         self.n_convs = len(config.msd_sublayer_channels)
@@ -95,10 +96,11 @@ class ScaleDiscriminator(nn.Module):
                                                                             config.msd_sublayer_kernels,
                                                                             config.msd_sublayer_strides,
                                                                             config.msd_sublayer_groups)):
-            self.layers.append(nn.Conv1d(last_n_channels, n_channels,
-                                         kernel_size, stride,
-                                         padding=((kernel_size - 1) // 2),
-                                         groups=groups))
+            self.layers.append(norm_fn(
+                nn.Conv1d(last_n_channels, n_channels,
+                          kernel_size, stride,
+                          padding=((kernel_size - 1) // 2), groups=groups)
+            ))
 
             if idx + 1 < self.n_convs:
                 self.layers.append(nn.LeakyReLU(config.relu_slope))
@@ -124,7 +126,9 @@ class MultiScaleDiscriminator(nn.Module):
         super().__init__()
 
         self.n_layers = config.msd_num_layers
-        self.discriminators = nn.ModuleList(ScaleDiscriminator(config) for _ in range(self.n_layers))
+        self.discriminators = nn.ModuleList(
+            ScaleDiscriminator(spectral_norm if i == 0 else weight_norm, config) for i in range(self.n_layers)
+        )
         self.pool = nn.AvgPool1d(4, 2, 2)
 
     def forward(self, x: torch.Tensor):

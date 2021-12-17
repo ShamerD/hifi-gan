@@ -47,6 +47,10 @@ def inf_loop(data_loader):
         yield from loader
 
 
+def init_normal(conv, mean=0.0, std=0.01):
+    torch.nn.init.normal_(conv.weight, mean, std)
+
+
 def prepare_device(n_gpu_use):
     """
     setup GPU device if available. get gpu device indices which are used for DataParallel

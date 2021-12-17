@@ -1,7 +1,9 @@
 import torch
 from torch import nn
+from torch.nn.utils import weight_norm
 
 from src.model.default_config import ModelConfig
+from src.utils import init_normal
 
 
 class ResBlock(nn.Module):
@@ -20,10 +22,13 @@ class ResBlock(nn.Module):
         for d_outer in dilations:
             inner_layers = []
             for d_inner in d_outer:
-                inner_layers.extend([
-                    nn.LeakyReLU(config.relu_slope),
-                    nn.Conv1d(n_channels, n_channels, kernel_size, stride=1, padding='same', dilation=d_inner)
-                ])
+                inner_layers.append(nn.LeakyReLU(config.relu_slope))
+
+                conv = nn.Conv1d(n_channels, n_channels, kernel_size, stride=1, padding='same', dilation=d_inner)
+                init_normal(conv)
+                conv = weight_norm(conv)
+
+                inner_layers.append(conv)
             layers.append(nn.Sequential(*inner_layers))
 
         self.layers = nn.ModuleList(layers)
@@ -57,9 +62,13 @@ class GeneratorBlock(nn.Module):
         super().__init__()
         kernel_size = config.kernels_upsample[block_id]
 
+        upsample_conv = nn.ConvTranspose1d(in_channels, out_channels, kernel_size,
+                                           stride=(kernel_size // 2), padding=(kernel_size // 4))
+        init_normal(upsample_conv)
+        upsample_conv = weight_norm(upsample_conv)
+
         self.net = nn.Sequential(
-            nn.ConvTranspose1d(in_channels, out_channels, kernel_size,
-                               stride=(kernel_size // 2), padding=(kernel_size // 4)),
+            upsample_conv,
             MRFBlock(out_channels, config),
             nn.LeakyReLU(config.relu_slope)
         )
@@ -74,8 +83,12 @@ class HiFiGenerator(nn.Module):
         self.n_blocks = len(config.kernels_upsample)
         self.n_resblocks = len(config.kernels_resblocks)
 
+        pre_conv = nn.Conv1d(config.n_mels, config.d_hidden, config.pre_kernel_size, padding='same')
+        init_normal(pre_conv)
+        pre_conv = weight_norm(pre_conv)
+
         self.pre = nn.Sequential(
-            nn.Conv1d(config.n_mels, config.d_hidden, config.pre_kernel_size, padding='same'),
+            pre_conv,
             nn.LeakyReLU(config.relu_slope)
         )
 
@@ -86,8 +99,12 @@ class HiFiGenerator(nn.Module):
             layers.append(GeneratorBlock(i, d_block, d_block // 2, config))
         self.net = nn.Sequential(*layers)
 
+        post_conv = nn.Conv1d(config.d_hidden // (2 ** self.n_blocks), 1, config.post_kernel_size, padding='same')
+        init_normal(post_conv)
+        post_conv = weight_norm(post_conv)
+
         self.post = nn.Sequential(
-            nn.Conv1d(config.d_hidden // (2 ** self.n_blocks), 1, config.post_kernel_size, padding='same'),
+            post_conv,
             nn.Flatten(),
             nn.Tanh()
         )
