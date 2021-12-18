@@ -48,8 +48,10 @@ def get_dataloaders(data_config: Dict):
                                         num_workers=num_workers)
 
     inference_dataset = InferenceWAVDataset()
+    # LJSpeechCollator to return Batch structure
     dataloaders['inference'] = DataLoader(inference_dataset,
                                           batch_size=1,
+                                          collate_fn=LJSpeechCollator(),
                                           shuffle=False)
 
     return dataloaders
