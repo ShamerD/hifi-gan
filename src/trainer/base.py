@@ -165,7 +165,7 @@ class BaseGANTrainer:
                 "disc_optimizer": self.disc_optimizer.state_dict()
             })
             if self.disc_scheduler is not None:
-                state['disc_scheduler'] = None
+                state['disc_scheduler'] = self.disc_scheduler.state_dict()
 
         filename = str(self.checkpoint_dir / "checkpoint-epoch{}.pth".format(epoch))
         if not (only_best and save_best):
