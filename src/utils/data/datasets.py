@@ -1,6 +1,10 @@
+import os
 import random
 from typing import Optional
 
+import numpy as np
+import torch
+from torch.utils.data import Dataset
 import torchaudio
 
 from src.utils import DATA_DIR
@@ -26,6 +30,40 @@ class LJSpeechDataset(torchaudio.datasets.LJSPEECH):
             waveform = waveform[:, start:(start + self.max_wav_length)]
 
         return waveform
+
+
+class InferenceWAVDataset(Dataset):
+    def __init__(self, data_dir=(DATA_DIR / "default_example")):
+        """
+        Dataset where each entry is wav (is needed to be converted to mel)
+        """
+        super().__init__()
+        self.data_dir = data_dir
+        self.filenames = os.listdir(data_dir)
+
+    def __getitem__(self, idx):
+        waveform, sample_rate = torchaudio.load(self.data_dir / self.filenames[idx])
+        return waveform
+
+    def __len__(self):
+        return len(self.filenames)
+
+
+class InferenceMelDataset(Dataset):
+    def __init__(self, data_dir):
+        """
+        Dataset where each entry is already melspec (in .npy format)
+        """
+        super().__init__()
+        self.data_dir = data_dir
+        self.filenames = os.listdir(data_dir)
+
+    def __getitem__(self, idx):
+        waveform = np.load(str(self.data_dir / self.filenames[idx]))
+        return torch.from_numpy(waveform)
+
+    def __len__(self):
+        return len(self.filenames)
 
 
 if __name__ == "__main__":

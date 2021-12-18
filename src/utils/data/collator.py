@@ -4,6 +4,8 @@ from typing import Optional, List
 import torch
 from torch.nn.utils.rnn import pad_sequence
 
+from .featurizer import MelSpectrogramConfig
+
 
 @dataclass
 class Batch:
@@ -56,3 +58,15 @@ class LJSpeechCollator:
         ]).transpose(0, 1)
 
         return Batch(waveform)
+
+
+class InferenceMelSpecCollator:
+    def __init__(self, mel_config: MelSpectrogramConfig = MelSpectrogramConfig()):
+        self.pad_value = mel_config.pad_value
+
+    def __call__(self, instances: List) -> Batch:
+        mels = pad_sequence([
+            instance for instance in instances
+        ], batch_first=True, padding_value=self.pad_value)
+
+        return Batch(spec=mels)
