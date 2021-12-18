@@ -29,7 +29,7 @@ MANIFEST
 .idea/
 
 # Heavy data
-data/
+data/*
 !src/utils/data
 resources/
 
@@ -37,6 +37,9 @@ resources/
 !data/LJSpeech-1.1/
 data/LJSpeech-1.1/*
 !data/LJSpeech-1.1/*.npy
+
+# Test data examples
+!data/default_example/
 
 # Logs
 wandb/
