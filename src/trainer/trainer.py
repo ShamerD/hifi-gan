@@ -286,8 +286,11 @@ class GANTrainer(BaseGANTrainer):
                 total=len(self.inference_loader),
         ):
             batch = batch.to(self.device)
-            batch.wav_gen = self.generator(batch)
+            assert batch.wav is not None or batch.spec is not None
+            if batch.spec is None:
+                batch.spec = self.wav2mel(batch.wav)
 
+            batch.wav_gen = self.generator(batch.spec)
             batch.spec_gen = self.wav2mel(batch.wav_gen)
 
             self._log_predictions(batch, inference_id=batch_idx + 1)
@@ -303,14 +306,16 @@ class GANTrainer(BaseGANTrainer):
 
         idx = random.randrange(batch.wav_gen.size(0))
 
-        if inference_id is None:
-            self._log_audio("true audio", batch.wav[idx])
-
         name_suffix = str(inference_id) if inference_id is not None else ""
 
         self._log_spectrogram("true spectrogram" + name_suffix, batch.spec[idx])
         self._log_spectrogram("predicted spectrogram" + name_suffix, batch.spec_gen[idx])
+        if batch.wav is not None:
+            self._log_audio("true audio" + name_suffix, batch.wav[idx])
         self._log_audio("generated audio" + name_suffix, batch.wav_gen[idx])
+
+        self._log_spectrogram("absolute spec difference" + name_suffix,
+                              torch.abs(batch.spec[idx] - batch.spec_gen[idx]))
 
     def _log_spectrogram(self, spec_name, spectrogram):
         image = PIL.Image.open(plot_spectrogram_to_buf(spectrogram.cpu()))
