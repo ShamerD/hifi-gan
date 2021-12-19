@@ -40,6 +40,7 @@
     "generator": {
       "type": "GeneratorLoss",
       "args": {
+        "adv_coef": 1.0,
         "feature_coef": 2.0,
         "mel_coef": 45.0
       }
@@ -54,26 +55,27 @@
     "generator": {
       "type": "StepLR",
       "args": {
-        "step_size": 1,
+        "step_size": 800,
         "gamma": 0.999
       }
     },
     "discriminator": {
       "type": "StepLR",
       "args": {
-        "step_size": 1,
+        "step_size": 800,
         "gamma": 0.999
       }
     }
   },
   "trainer": {
     "use_discriminator": true,
-    "epochs": 1000,
+    "epochs": 3000,
+    "len_epoch": 800,
     "save_dir": "resources/",
-    "save_period": 200,
+    "save_period": 10,
     "verbosity": 2,
     "visualize": "wandb",
-    "log_step": 100,
+    "log_step": 200,
     "wandb_project": "nv_project"
   }
 }
