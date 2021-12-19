@@ -1,4 +1,4 @@
-from .collator import Batch, LJSpeechCollator
+from .collator import Batch, LJSpeechCollator, InferenceMelSpecCollator
 from .datasets import LJSpeechDataset, InferenceWAVDataset, InferenceMelDataset
 from .featurizer import MelSpectrogramConfig, MelSpectrogram
 from .lj_trainval_split import LJ_DATA_DIR
@@ -12,6 +12,7 @@ __all__ = [
     "MelSpectrogram",
     "Batch",
     "LJSpeechCollator",
+    "InferenceMelSpecCollator",
     "get_dataloaders",
     "LJ_DATA_DIR"
 ]

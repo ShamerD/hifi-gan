@@ -65,6 +65,9 @@ class InferenceMelDataset(Dataset):
     def __len__(self):
         return len(self.filenames)
 
+    def get_item_path(self, idx):
+        return str(self.data_dir / self.filenames[idx])
+
 
 if __name__ == "__main__":
     # download check

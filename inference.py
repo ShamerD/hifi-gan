@@ -1,7 +1,6 @@
 import argparse
 import json
 import os
-import sys
 from pathlib import Path
 
 import torch
@@ -13,9 +12,9 @@ import src.model as module_model
 import src.utils.data as module_data
 from src.utils import fix_seed, ROOT_PATH, CHECKPOINT_DIR
 from src.utils.config_parser import ConfigParser
-from src.utils.data import TextDataset, TextCollator
+from src.utils.data import InferenceMelDataset, InferenceMelSpecCollator
 
-DEFAULT_CHECKPOINT_PATH = CHECKPOINT_DIR / "fastspeech.pth"
+DEFAULT_CHECKPOINT_PATH = CHECKPOINT_DIR / "hifi-gan.pth"
 DEFAULT_INFERENCE_PATH = ROOT_PATH / "inference"
 
 
@@ -27,22 +26,20 @@ def main(config: ConfigParser, loader: DataLoader, out_dir: Path):
     model_config = config.init_obj(config['model_config'], module_model)
 
     # build all models
-    model = module_model.FastSpeech(model_config)
-    vocoder = module_model.Waveglow()
+    generator = module_model.HiFiGenerator(model_config)
 
     logger.info("Loading checkpoint: {} ...".format(config.resume))
     checkpoint = torch.load(config.resume)
-    state_dict = checkpoint["state_dict"]
+    state_dict = checkpoint["generator"]
     if config["n_gpu"] > 1:
-        model = torch.nn.DataParallel(model)
-    model.load_state_dict(state_dict)
+        generator = torch.nn.DataParallel(generator)
+    generator.load_state_dict(state_dict)
+    generator.remove_weight_norm()
 
     # prepare model for testing
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = model.to(device)
-    vocoder = vocoder.to(device)
-    model.eval()
-    vocoder.eval()
+    generator = generator.to(device)
+    generator.eval()
 
     results = []
     audio_dir = out_dir / "audio"
@@ -51,14 +48,16 @@ def main(config: ConfigParser, loader: DataLoader, out_dir: Path):
     with torch.no_grad():
         for batch_num, batch in enumerate(tqdm(loader)):
             assert len(batch.transcript) == 1
+            assert batch.spec is not None
+
             batch = batch.to(device)
 
-            mels, _, mels_lens = model(batch)
-            audio = vocoder.inference(mels).cpu()  # not squeezing as batch dim becomes channel dim
+            audio = generator(batch.spec)
+            # batch dim becomes channel dim
 
             audio_path = audio_dir / (str(batch_num + 1) + ".wav")
             torchaudio.save(audio_path, audio, sample_rate=featurizer_config.sr)
-            results.append({"transcript": batch.transcript[0], "audio": str(audio_path)})
+            results.append({"spectrogram": loader.dataset.get_item_path(batch_num), "audio": str(audio_path)})
 
     metadata_file = out_dir / "metadata.json"
     with metadata_file.open("w") as f:
@@ -67,7 +66,6 @@ def main(config: ConfigParser, loader: DataLoader, out_dir: Path):
 
 if __name__ == "__main__":
     fix_seed()
-    sys.path.append('waveglow/')
 
     args = argparse.ArgumentParser(description="PyTorch Template")
     args.add_argument(
@@ -95,9 +93,9 @@ if __name__ == "__main__":
     args.add_argument(
         "-s",
         "--source",
-        default=None,
+        required=True,
         type=str,
-        help="Path to source text sentences",
+        help="Path to source spectrograms",
     )
 
     args.add_argument(
@@ -119,19 +117,15 @@ if __name__ == "__main__":
     with Path(args.config).open() as f:
         config = ConfigParser(json.load(f), resume=args.resume)
 
-    # prepare test sentences
-    if args.source is not None:
-        texts = []
-        with Path(args.source).open() as f:
-            for line in f:
-                texts.append(line.rstrip())
-    else:
-        texts = None
+    if args.source is None:
+        # should not be here
+        print("Source is not specified")
+        exit(1)
 
-    inference_dataset = TextDataset(texts)
+    inference_dataset = InferenceMelDataset(Path(args.source))
     inference_loader = DataLoader(inference_dataset,
                                   batch_size=1,
-                                  collate_fn=TextCollator(),
+                                  collate_fn=InferenceMelSpecCollator(),
                                   shuffle=False)
 
     main(config, inference_loader, target_dir)
