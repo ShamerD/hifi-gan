@@ -40,6 +40,7 @@ data/LJSpeech-1.1/*
 
 # Test data examples
 !data/default_example/
+!data/default_example_spec/
 
 # Logs
 wandb/

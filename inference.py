@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 import src.model as module_model
 import src.utils.data as module_data
-from src.utils import fix_seed, ROOT_PATH, CHECKPOINT_DIR
+from src.utils import fix_seed, ROOT_PATH, CHECKPOINT_DIR, DATA_DIR
 from src.utils.config_parser import ConfigParser
 from src.utils.data import InferenceMelDataset, InferenceMelSpecCollator
 
@@ -93,7 +93,7 @@ if __name__ == "__main__":
     args.add_argument(
         "-s",
         "--source",
-        required=True,
+        default=str(DATA_DIR / "default_example_spec"),
         type=str,
         help="Path to source spectrograms",
     )
@@ -117,15 +117,11 @@ if __name__ == "__main__":
     with Path(args.config).open() as f:
         config = ConfigParser(json.load(f), resume=args.resume)
 
-    if args.source is None:
-        # should not be here
-        print("Source is not specified")
-        exit(1)
-
     inference_dataset = InferenceMelDataset(Path(args.source))
     inference_loader = DataLoader(inference_dataset,
                                   batch_size=1,
-                                  collate_fn=InferenceMelSpecCollator(),
+                                  collate_fn=InferenceMelSpecCollator(config.init_obj(config['mel_config'],
+                                                                                      module_data)),
                                   shuffle=False)
 
     main(config, inference_loader, target_dir)

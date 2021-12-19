@@ -1,5 +1,6 @@
 import os
 import random
+from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -38,7 +39,7 @@ class InferenceWAVDataset(Dataset):
         Dataset where each entry is wav (is needed to be converted to mel)
         """
         super().__init__()
-        self.data_dir = data_dir
+        self.data_dir = Path(data_dir)
         self.filenames = os.listdir(data_dir)
 
     def __getitem__(self, idx):
@@ -55,7 +56,7 @@ class InferenceMelDataset(Dataset):
         Dataset where each entry is already melspec (in .npy format)
         """
         super().__init__()
-        self.data_dir = data_dir
+        self.data_dir = Path(data_dir)
         self.filenames = os.listdir(data_dir)
 
     def __getitem__(self, idx):
