@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torch.nn.utils import weight_norm
+from torch.nn.utils import weight_norm, remove_weight_norm
 
 from src.model.default_config import ModelConfig
 from src.utils import init_normal
@@ -39,6 +39,12 @@ class ResBlock(nn.Module):
 
         return x
 
+    def remove_weight_norm(self):
+        for out in range(self.num_outer):
+            for i in range(self.num_inner):
+                if isinstance(self.layers[out][i], nn.Conv1d):
+                    remove_weight_norm(self.layers[out][i])
+
 
 class MRFBlock(nn.Module):
     def __init__(self, n_channels: int, config: ModelConfig):
@@ -55,6 +61,10 @@ class MRFBlock(nn.Module):
         for layer in self.layers:
             out += layer(x)
         return out
+
+    def remove_weight_norm(self):
+        for layer in self.layers:
+            layer.remove_weight_norm()
 
 
 class GeneratorBlock(nn.Module):
@@ -75,6 +85,10 @@ class GeneratorBlock(nn.Module):
 
     def forward(self, x):
         return self.net(x)
+
+    def remove_weight_norm(self):
+        remove_weight_norm(self.net[0])
+        self.net[1].remove_weight_norm()
 
 
 class HiFiGenerator(nn.Module):
@@ -115,3 +129,9 @@ class HiFiGenerator(nn.Module):
         :return: wavs of shape [B, L]
         """
         return self.post(self.net(self.pre(x)))
+
+    def remove_weight_norm(self):
+        remove_weight_norm(self.pre[0])
+        for layer in self.net:
+            layer.remove_weight_norm()
+        remove_weight_norm(self.post[0])
