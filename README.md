@@ -6,6 +6,9 @@
 chmod +x setup.sh && ./setup.sh
 ```
 
+If something with downloading model goes wrong, you can manually download model weights from [here](https://drive.google.com/file/d/1-h8A3AtB2Z_IQbmv2mROC3z4xew_Kehw/view?usp=sharing)
+and put them under `resources/hifi-gan.pth`
+
 # Usage
 ## Training
 ```shell
