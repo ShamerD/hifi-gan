@@ -47,8 +47,8 @@ def main(config: ConfigParser, loader: DataLoader, out_dir: Path):
 
     with torch.no_grad():
         for batch_num, batch in enumerate(tqdm(loader)):
-            assert len(batch.transcript) == 1
             assert batch.spec is not None
+            assert batch.spec.size(0) == 1
 
             batch = batch.to(device)
 
