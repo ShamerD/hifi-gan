@@ -52,7 +52,7 @@ def main(config: ConfigParser, loader: DataLoader, out_dir: Path):
 
             batch = batch.to(device)
 
-            audio = generator(batch.spec)
+            audio = generator(batch.spec).cpu()
             # batch dim becomes channel dim
 
             audio_path = audio_dir / (str(batch_num + 1) + ".wav")
