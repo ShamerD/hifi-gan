@@ -1,5 +1,7 @@
 # hifi-gan
- [HiFi-GAN](https://arxiv.org/pdf/2010.05646.pdf) is a vocoder in TTS pipeline. 
+[HiFi-GAN](https://arxiv.org/pdf/2010.05646.pdf) is a vocoder in TTS pipeline. 
+
+Report can be found [here](https://wandb.ai/shamerd/nv_project/reports/TTS-Vocoder---VmlldzoxMzU4MzYw).
 
 # Installation
 ```shell
