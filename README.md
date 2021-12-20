@@ -3,7 +3,7 @@
 
 # Installation
 ```shell
-pip install -r requirements.txt -f https://download.pytorch.org/whl/torch_stable.html
+chmod + x setup.sh && ./setup.sh
 ```
 
 # Usage
